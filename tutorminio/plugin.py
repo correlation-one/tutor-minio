@@ -32,6 +32,8 @@ tutor_hooks.Filters.CONFIG_DEFAULTS.add_items(
         ),
         ("MINIO_MC_DOCKER_IMAGE", "docker.io/minio/mc:RELEASE.2022-03-31T04-55-30Z"),
         ("MINIO_GATEWAY", None),
+        ("MINIO_GCS_APPLICATION_CREDENTIALS", None),
+        ("MINIO_GCS_APPLICATION_ID", None),
     ]
 )
 
