@@ -21,5 +21,39 @@ class MinIOStorage(S3Boto3Storage):  # pylint: disable=abstract-method
     def __init__(self):
         bucket = "{{ MINIO_BUCKET_NAME }}"
         super().__init__(bucket=bucket, custom_domain=None, querystring_auth=True)
+{% if MINIO_GATEWAY == "gcs" %}
+    def _save_content(self, obj, content, parameters):
+        """
+        This is a hack to make boto3 work with GCS
+
+        GCS does not support multipart uploads in the same way as S3, it cares for many details that
+        boto3 doesn't care about. See this link for more details:
+        https://cloud.google.com/storage/docs/xml-api/post-object-complete#common_error_codes
+
+        boto3 automatically uses multipart uploads for files larger than 8MB. The limit is not AWS specific,
+        but it's the default `multipart_threshold` set when initializing `TransferConfig`.
+        See this link for more details:
+        https://github.com/boto/boto3/blame/0e06fd1ed61fd3551c1007ece9b1285b14556e9b/boto3/s3/transfer.py#L240
+
+        This method is a copy of the original `_save_content` method, with the addition of the
+        TransferConfig object, which is necessary to make boto3 use a single PUT request instead
+        of multipart uploads.
+        https://github.com/jschneier/django-storages/blob/e4077b17e9020087d7a174ec343ec5829cd79d42/storages/backends/s3boto3.py#L500
+
+        IMPORTANT: this works only with django-storages==1.8 which is used with edx-platform Palm.3
+        """
+        from boto3.s3.transfer import TransferConfig
+        # only pass backwards incompatible arguments if they vary from the default
+        put_parameters = parameters.copy() if parameters else {}
+        if self.encryption:
+            put_parameters['ServerSideEncryption'] = 'AES256'
+        if self.reduced_redundancy:
+            put_parameters['StorageClass'] = 'REDUCED_REDUNDANCY'
+        if self.default_acl:
+            put_parameters['ACL'] = self.default_acl
+        content.seek(0, os.SEEK_SET)
+        transfer_config = TransferConfig(multipart_threshold={{ MINIO_GCS_MULTIPART_THRESHOLD }})
+        obj.upload_fileobj(content, ExtraArgs=put_parameters, Config=transfer_config)
+{% endif %}
 
 USER_TASKS_ARTIFACT_STORAGE = f"{__name__}.MinIOStorage"
