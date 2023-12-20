@@ -38,7 +38,7 @@ tutor_hooks.Filters.CONFIG_DEFAULTS.add_items(
         # upload below that threshold. But it also means that any file larger than the threshold will fail to upload
         # to GCS (including course export/import tar files). Increasing the threshold gives the ability to upload
         # larger files, but with the risk of timeouts, depending on the network speed.
-        ("MINIO_GCS_MULTIPART_THRESHOLD", 1024 * 1024 * 200),
+        ("MINIO_GCS_MULTIPART_THRESHOLD", 1024 * 1024 * 300),
     ]
 )
 
